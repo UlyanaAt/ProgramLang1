@@ -27,82 +27,78 @@ class Resources:
         articles: list | None = None
 
         moreNews = soup.find('div', class_='styles_itemsContainer__saJYW')
-        news = moreNews.find_all('wide-tease-item__wrapper df flex-column flex-row-m flex-nowrap-m')
+        news = moreNews.find_all('div', class_='wide-tease-item__wrapper df flex-column flex-row-m flex-nowrap-m')
         
-        for new in soup.find(id="news-feed-container").find_all('article'):
-            header = new.find('h3', class_='gc__title').find('span').text.replace('\xad', '')
-
+        for new in news:
+            header = new.find('h2', class_='wide-tease-item__headline').text 
+            
             if header not in self.data:
                 self.data.append(header)
 
                 article = {
                     'header': header,
-                    'annotation': new.find('div', class_='gc__excerpt').find('p').text.replace('\xad', ''),
-                    'date': new.find('div', class_='gc__date__date').find('span').text.replace('Published On ', '')
+                    'annotation': new.find('div', class_='wide-tease-item__description').text,
+                    'date': new.find('div', class_='wide-tease-item__timestamp dib db-m ml3 ml0-m').text
                 }
-
+                
                 if articles is None:
                     articles = [article]
                 else:
                     articles.append(article)
 
-            return articles
+        return articles
 
     def washingtonpost(self, html: str) -> list:
         soup = BeautifulSoup(html, "html.parser")
-
-        main = soup.find('div', class_='colMain')
-        dates = main.find_all('h4', class_='redHead')
-
+        
         articles: list | None = None
-        for index, block in enumerate(
-                main.find_all(
-                    'ul',
-                    class_='leads',
-                )
-        ):
-            for new in block.find_all('li'):
-                header: str = new.find('h3', class_='smallCaps').find('a').text.replace('\xa0', ' ')
+        
+        main = soup.find('article', class_='b-l br-l mb-xxl-ns mt-xxs mt-md-l pr-lg-l col-8-lg mr-lg-l')
+        news = main.find_all(attrs={"data-feature-id": True})
+        
+        for new in news:
+            header = new.find('h3').text 
+            
+            if header not in self.data:
+                self.data.append(header)
 
-                if header not in self.data:
-                    self.data.append(header)
+                article = {
+                    'header': header,
+                    'annotation': new.find('p', class_='pt-xs pb-xs font-size-blurb lh-fronts-tiny font-light gray-dark dn db-ns').text,
+                    'author': new.find('a', class_='wpds-c-knSWeD wpds-c-knSWeD-iRfhkg-as-a').text,
+                    'date': new.find('span', class_='wpds-c-iKQyrV font-xxxs font-light font--meta-text lh-sm gray-dark dot-xxs-gray-dark').text
+                }
+                
+                if articles is None:
+                    articles = [article]
+                else:
+                    articles.append(article)
 
-                    article = {
-                        'header': header,
-                        'annotation': new.find('p').text.replace('\xa0', ' ').replace(' czytaj więcej', ''),
-                        'date': dates[index].text.replace('\xa0', ' ')
-                    }
-
-                    if articles is None:
-                        articles = [article]
-                    else:
-                        articles.append(article)
         return articles
 
     def cbsnews(self, html: str) -> list:
         soup = BeautifulSoup(html, "html.parser")
-
+        
         articles: list | None = None
-        for new in soup.findAll('div', class_='list_info'):
-            header: str = new.find('a', class_='new_title_ms').text
-
+        
+        main = soup.find('section', class_='component list-river list list-river--with-hero list-river--with-load-more --has-view-more component--topic- component--view-list-river-with-hero-with-load-more --item-count-15')
+        news = main.find_all('a', class_='item__anchor')
+        
+        for new in news:
+            header = new.find('div', class_='item__title-wrapper').find('h4', class_='item__hed').text.replace('\n                    ', '')
+            
             if header not in self.data:
                 self.data.append(header)
 
-                other: list[str] = new.find(
-                    'div',
-                    class_='source_time',
-                ).text.split('|')
-
                 article = {
                     'header': header,
-                    'annotation': new.find('p').text,
-                    'author': other[0].replace('By ', ''),
-                    'date': other[1].split(' ')[2]
+                    'annotation': new.find('p', class_='item__dek').text.replace('\n        ', ""),
+                    'date': new.find('li', class_='item__date').text
                 }
-
+                
                 if articles is None:
                     articles = [article]
                 else:
                     articles.append(article)
-            return articles
+
+        return articles
